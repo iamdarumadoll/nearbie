@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>NEARBIE — Your Neighbourhood, All in One Place</title>
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f5f7fa;
+            color: #1a1a2e;
+            padding-bottom: 80px;
+            min-height: 100vh;
+        }
+
+        /* ===== APP CONTAINER ===== */
+        .app {
+            max-width: 480px;
+            margin: 0 auto;
+            background: #ffffff;
+            min-height: 100vh;
+            box-shadow: 0 0 30px rgba(0,0,0,0.05);
+            position: relative;
+            padding-bottom: 70px;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            padding: 16px 20px 12px;
+            background: #ffffff;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(8px);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .logo {
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            color: #0a2540;
+        }
+        .logo span {
+            color: #e85d3a;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .bell-wrap {
+            position: relative;
+            cursor: pointer;
+            font-size: 26px;
+            line-height: 1;
+            padding: 4px;
+        }
+        .bell-badge {
+            position: absolute;
+            top: -4px;
+            right: -6px;
+            background: #e85d3a;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+            border: 2px solid white;
+        }
+        .bell-badge.hide {
+            display: none;
+        }
+
+        /* ===== TICKER ===== */
+        .ticker {
+            background: #0a2540;
+            color: white;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            letter-spacing: 0.3px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .ticker marquee {
+            display: block;
+        }
+
+        /* ===== GREETING ===== */
+        .greeting {
+            padding: 18px 20px 6px;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .greeting-sub {
+            padding: 0 20px 14px;
+            font-size: 14px;
+            color: #5a6a7a;
+        }
+
+        /* ===== SEARCH ===== */
+        .search-wrap {
+            padding: 0 20px 16px;
+        }
+        .search-wrap input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 40px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            background: #f5f7fa;
+            outline: none;
+            transition: 0.2s;
+        }
+        .search-wrap input:focus {
+            border-color: #0a2540;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+
+        /* ===== CATEGORIES ===== */
+        .categories {
+            padding: 0 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .cat-card {
+            background: #f5f7fa;
+            border-radius: 20px;
+            padding: 18px 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.15s;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .cat-card:active {
+            transform: scale(0.96);
+            background: #e8ecf2;
+        }
+        .cat-card .emoji {
+            display: block;
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        /* ===== SECTION TITLE ===== */
+        .section-title {
+            padding: 12px 20px 6px;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-title small {
+            font-weight: 400;
+            font-size: 14px;
+            color: #5a6a7a;
+        }
+
+        /* ===== BUSINESS CARDS ===== */
+        .business-list {
+            padding: 0 20px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .biz-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #eee;
+            transition: 0.15s;
+        }
+        .biz-card:active {
+            transform: scale(0.98);
+        }
+        .biz-card h3 {
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+        .biz-card .cat-tag {
+            display: inline-block;
+            background: #eef2f7;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #0a2540;
+            margin: 4px 0 6px;
+        }
+        .biz-card .desc {
+            font-size: 14px;
+            color: #3a4a5a;
+            margin: 4px 0 8px;
+        }
+        .biz-card .view-btn {
+            background: #0a2540;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .biz-card .view-btn:active {
+            opacity: 0.7;
+            transform: scale(0.96);
+        }
+
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #5a6a7a;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .empty-state .big {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e8ecf2;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            max-width: 480px;
+            margin: 0 auto;
+            z-index: 20;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            color: #8a9aaa;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 30px;
+            transition: 0.15s;
+            background: transparent;
+            border: none;
+            font-weight: 600;
+            gap: 2px;
+            min-width: 60px;
+        }
+        .nav-item .nav-icon {
+            font-size: 26px;
+            line-height: 1.2;
+        }
+        .nav-item.active {
+            color: #0a2540;
+            background: #f0f3f8;
+        }
+        .nav-item:active {
+            transform: scale(0.92);
+        }
+
+        /* ===== PAGE CONTAINERS ===== */
+        .page {
+            display: none;
+            padding-bottom: 20px;
+        }
+        .page.active {
+            display: block;
+        }
+
+        /* ===== PROFILE ===== */
+        .profile-card {
+            background: white;
+            margin: 16px 20px;
+            padding: 24px 20px;
+            border-radius: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #eee;
+        }
+        .profile-card .field {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .profile-card .field:last-child {
+            border-bottom: 0;
+        }
+        .profile-card .label {
+            font-weight: 600;
+            width: 100px;
+            color: #3a4a5a;
+            font-size: 14px;
+        }
+        .profile-card .value {
+            flex: 1;
+            font-size: 14px;
+        }
+        .profile-card .saved-badge {
+            display: inline-block;
+            background: #e6f7e6;
+            color: #1a7a3a;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .profile-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .profile-actions button {
+            padding: 10px 24px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+            flex: 1;
+            min-width: 100px;
+        }
+        .profile-actions .edit-btn {
+            background: #0a2540;
+            color: white;
+        }
+        .profile-actions .logout-btn {
+            background: #f5f5f5;
+            color: #1a1a2e;
+        }
+        .profile-actions button:active {
+            transform: scale(0.96);
+        }
+
+        .profile-form {
+            margin: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .profile-form input {
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            background: #f9fafc;
+        }
+        .profile-form input:focus {
+            border-color: #0a2540;
+            background: white;
+            outline: none;
+        }
+        .profile-form .save-btn {
+            background: #0a2540;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .profile-form .save-btn:active {
+            opacity: 0.7;
+        }
+
+        /* ===== BUSINESS REGISTRATION ===== */
+        .reg-form {
+            margin: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .reg-form input,
+        .reg-form select,
+        .reg-form textarea {
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            background: #f9fafc;
+            font-family: inherit;
+        }
+        .reg-form textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+        .reg-form .reg-btn {
+            background: #e85d3a;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .reg-form .reg-btn:active {
+            opacity: 0.7;
+        }
+
+        /* ===== BUSINESS PAGE ===== */
+        .biz-detail {
+            padding: 20px;
+        }
+        .biz-detail .biz-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .biz-detail .biz-logo {
+            font-size: 48px;
+            background: #f0f3f8;
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .biz-detail .biz-name {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .biz-detail .biz-category {
+            background: #eef2f7;
+            padding: 2px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .biz-detail .biz-desc {
+            margin: 12px 0;
+            font-size: 15px;
+            color: #2a3a4a;
+            line-height: 1.5;
+        }
+        .biz-detail .biz-address {
+            font-size: 14px;
+            color: #5a6a7a;
+            margin-bottom: 16px;
+        }
+
+        .biz-detail .menu-item {
+            background: #f9fafc;
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+        .biz-detail .menu-item .item-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .biz-detail .menu-item .item-price {
+            font-weight: 700;
+            color: #0a2540;
+        }
+        .biz-detail .menu-item .item-desc {
+            font-size: 13px;
+            color: #5a6a7a;
+        }
+
+        .biz-actions {
+            display: flex;
+            gap: 12px;
+            margin: 18px 0;
+            flex-wrap: wrap;
+        }
+        .biz-actions button {
+            padding: 12px 24px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 120px;
+            transition: 0.15s;
+        }
+        .biz-actions .order-btn {
+            background: #0a2540;
+            color: white;
+        }
+        .biz-actions .contact-btn {
+            background: #eef2f7;
+            color: #0a2540;
+        }
+        .biz-actions button:active {
+            transform: scale(0.96);
+        }
+
+        /* ===== ORDERS ===== */
+        .order-card {
+            background: white;
+            margin: 10px 20px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .order-card .order-status {
+            display: inline-block;
+            padding: 2px 14px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #eef2f7;
+            margin-top: 6px;
+        }
+        .order-card .order-status.accepted {
+            background: #d4edda;
+            color: #155724;
+        }
+        .order-card .order-status.preparing {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .order-card .order-status.ready {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .order-card .order-status.delivered {
+            background: #d6d8db;
+            color: #383d41;
+        }
+
+        /* ===== NOTIFICATIONS ===== */
+        .notif-list {
+            padding: 0 20px;
+        }
+        .notif-item {
+            background: white;
+            padding: 14px 16px;
+            border-radius: 16px;
+            margin-bottom: 8px;
+            border-left: 4px solid #0a2540;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+        }
+        .notif-item.unread {
+            background: #f0f7ff;
+            border-left-color: #e85d3a;
+        }
+        .notif-item .notif-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .notif-item .notif-time {
+            font-size: 12px;
+            color: #8a9aaa;
+        }
+        .notif-item .notif-body {
+            font-size: 14px;
+            color: #2a3a4a;
+            margin: 4px 0;
+        }
+
+        /* ===== MODAL / POPUP ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-box {
+            background: white;
+            border-radius: 32px;
+            max-width: 400px;
+            width: 100%;
+            padding: 28px 24px 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: popIn 0.25s ease;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-box .modal-icon {
+            font-size: 40px;
+        }
+        .modal-box h3 {
+            font-size: 20px;
+            margin: 8px 0 4px;
+        }
+        .modal-box p {
+            color: #3a4a5a;
+            line-height: 1.5;
+            margin: 6px 0 14px;
+        }
+        .modal-box .modal-btn {
+            background: #0a2540;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 16px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .modal-box .modal-btn:active {
+            opacity: 0.7;
+        }
+
+        /* ===== BACK BUTTON ===== */
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 12px 4px 0;
+            font-weight: 600;
+            color: #0a2540;
+        }
+
+        /* ===== UTILITY ===== */
+        .mt-8 { margin-top: 8px; }
+        .mb-8 { margin-bottom: 8px; }
+        .text-center { text-align: center; }
+        .gap-8 { gap: 8px; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .hidden { display: none !important; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+            .app { max-width: 100%; }
+            .categories { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .cat-card { padding: 14px 4px; font-size: 13px; }
+            .cat-card .emoji { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app" id="app">
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <span class="logo">NEAR<span>BIE</span></span>
+        </div>
+        <div class="header-right">
+            <div class="bell-wrap" id="bellWrap" onclick="openNotifications()">
+                🔔
+                <span class="bell-badge hide" id="bellBadge">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== TICKER ===== -->
+    <div class="ticker">
+        <marquee behavior="scroll" direction="left" scrollamount="4">📍 Currently available for Ansal Town</marquee>
+    </div>
+
+    <!-- ===== PAGE: HOME ===== -->
+    <div class="page active" id="pageHome">
+        <div class="greeting" id="greetingText">Hey there 👋</div>
+        <div class="greeting-sub">What's around you?</div>
+
+        <div class="search-wrap">
+            <input type="text" id="searchInput" placeholder="Search food, tuition, fashion..." oninput="filterBusinesses()" />
+        </div>
+
+        <div class="categories" id="categoryGrid">
+            <div class="cat-card" onclick="filterByCategory('Food')"><span class="emoji">🍱</span>Food</div>
+            <div class="cat-card" onclick="filterByCategory('Education')"><span class="emoji">📚</span>Education</div>
+            <div class="cat-card" onclick="filterByCategory('Fashion')"><span class="emoji">👗</span>Fashion</div>
+            <div class="cat-card" onclick="filterByCategory('Beauty')"><span cla
