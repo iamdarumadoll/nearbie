@@ -712,4 +712,673 @@
             <div class="cat-card" onclick="filterByCategory('Food')"><span class="emoji">🍱</span>Food</div>
             <div class="cat-card" onclick="filterByCategory('Education')"><span class="emoji">📚</span>Education</div>
             <div class="cat-card" onclick="filterByCategory('Fashion')"><span class="emoji">👗</span>Fashion</div>
-            <div class="cat-card" onclick="filterByCategory('Beauty')"><span cla
+            <div class="cat-card" onclick="filterByCategory('Beauty')"><span class="emoji">💇</span>Beauty</div>
+            <div class="cat-card" onclick="filterByCategory('Services')"><span class="emoji">🧵</span>Services</div>
+            <div class="cat-card" onclick="filterByCategory('Crafts')"><span class="emoji">🎨</span>Crafts</div>
+        </div>
+
+        <div class="section-title">NEAR YOU <small>local businesses</small></div>
+        <div class="business-list" id="businessList"></div>
+    </div>
+
+    <!-- ===== PAGE: EXPLORE ===== -->
+    <div class="page" id="pageExplore">
+        <div style="padding:16px 20px 0;">
+            <button class="back-btn" onclick="switchPage('pageHome')">← Back</button>
+        </div>
+        <div class="section-title">All Businesses</div>
+        <div class="business-list" id="exploreList"></div>
+    </div>
+
+    <!-- ===== PAGE: ORDERS ===== -->
+    <div class="page" id="pageOrders">
+        <div class="section-title">📦 Orders</div>
+        <div id="ordersContainer"><div class="empty-state"><span class="big">📭</span>No orders yet</div></div>
+    </div>
+
+    <!-- ===== PAGE: PROFILE ===== -->
+    <div class="page" id="pageProfile">
+        <div class="section-title">♙ Profile</div>
+        <div id="profileContainer"></div>
+    </div>
+
+    <!-- ===== PAGE: BUSINESS DETAIL ===== -->
+    <div class="page" id="pageBusiness">
+        <div style="padding:12px 20px 0;">
+            <button class="back-btn" onclick="closeBusinessDetail()">← Back</button>
+        </div>
+        <div class="biz-detail" id="businessDetail"></div>
+    </div>
+
+    <!-- ===== PAGE: NOTIFICATIONS ===== -->
+    <div class="page" id="pageNotifications">
+        <div style="padding:12px 20px 0; display:flex; justify-content:space-between; align-items:center;">
+            <button class="back-btn" onclick="switchPage('pageHome')">← Back</button>
+            <button onclick="markAllRead()" style="background:none;border:none;font-weight:600;color:#0a2540;font-size:14px;">Mark all read</button>
+        </div>
+        <div class="section-title">🔔 Notifications</div>
+        <div class="notif-list" id="notifList"></div>
+    </div>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <div class="modal-icon" id="modalIcon">📢</div>
+            <h3 id="modalTitle">Announcement</h3>
+            <p id="modalBody">Message</p>
+            <div style="font-size:13px;color:#8a9aaa;margin-bottom:12px;" id="modalTime"></div>
+            <button class="modal-btn" onclick="closeModal()">Got it</button>
+        </div>
+    </div>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-page="pageHome" onclick="switchPage('pageHome')">
+            <span class="nav-icon">⌂</span> Home
+        </button>
+        <button class="nav-item" data-page="pageExplore" onclick="switchPage('pageExplore')">
+            <span class="nav-icon">⌕</span> Explore
+        </button>
+        <button class="nav-item" data-page="pageOrders" onclick="switchPage('pageOrders')">
+            <span class="nav-icon">📦</span> Orders
+        </button>
+        <button class="nav-item" data-page="pageProfile" onclick="switchPage('pageProfile')">
+            <span class="nav-icon">♙</span> Profile
+        </button>
+    </nav>
+</div>
+
+<script>
+    // ============================================================
+    //  DATA LAYER — localStorage
+    // ============================================================
+    const DB = {
+        get(key, def) {
+            try { return JSON.parse(localStorage.getItem('nearbie_' + key)) || def; } catch { return def; }
+        },
+        set(key, val) {
+            localStorage.setItem('nearbie_' + key, JSON.stringify(val));
+        }
+    };
+
+    // ============================================================
+    //  STATE
+    // ============================================================
+    let user = DB.get('user', null);
+    let businesses = DB.get('businesses', []);
+    let orders = DB.get('orders', []);
+    let notifications = DB.get('notifications', []);
+    let announcements = DB.get('announcements', []);
+    let currentBusinessId = null;
+
+    // ============================================================
+    //  HELPERS
+    // ============================================================
+    function generateId() { return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6); }
+
+    function today() { return new Date().toISOString().split('T')[0]; }
+
+    function now() { return new Date().toISOString(); }
+
+    function formatTime(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' }) + ' • ' +
+               d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    }
+
+    // ============================================================
+    //  USER
+    // ============================================================
+    function saveUser(data) {
+        user = { id: generateId(), ...data };
+        DB.set('user', user);
+        renderProfile();
+        updateGreeting();
+        renderAll();
+    }
+
+    function logoutUser() {
+        user = null;
+        DB.set('user', null);
+        renderProfile();
+        updateGreeting();
+        renderAll();
+    }
+
+    function updateGreeting() {
+        const el = document.getElementById('greetingText');
+        if (user && user.name) {
+            el.textContent = 'Hey, ' + user.name + ' 👋';
+        } else {
+            el.textContent = 'Hey there 👋';
+        }
+    }
+
+    // ============================================================
+    //  BUSINESS
+    // ============================================================
+    function registerBusiness(data) {
+        const biz = {
+            id: generateId(),
+            ownerName: data.ownerName,
+            businessName: data.businessName,
+            address: data.address,
+            area: data.area,
+            genre: data.genre,
+            description: data.description || '',
+            catalogue: data.catalogue || [],
+            createdAt: now(),
+        };
+        businesses.push(biz);
+        DB.set('businesses', businesses);
+        renderAll();
+        alert('✅ Business registered!');
+    }
+
+    function getBusinessesNearUser() {
+        if (!user || !user.area) return businesses;
+        return businesses.filter(b => b.area && b.area.toLowerCase().includes(user.area.toLowerCase()));
+    }
+
+    // ============================================================
+    //  ORDERS
+    // ============================================================
+    function createOrder(businessId, items, details) {
+        const order = {
+            id: generateId(),
+            businessId,
+            customerId: user ? user.id : 'guest',
+            customerName: user ? user.name : 'Guest',
+            items: items || [],
+            date: today(),
+            time: now(),
+            address: user ? user.address : '',
+            status: 'Placed',
+            createdAt: now(),
+            ...details
+        };
+        orders.push(order);
+        DB.set('orders', orders);
+        addNotification('order', businessId, 'Order Placed', 'Your order has been placed successfully.');
+        renderAll();
+        return order;
+    }
+
+    function updateOrderStatus(orderId, newStatus) {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+            order.status = newStatus;
+            DB.set('orders', orders);
+            const biz = businesses.find(b => b.id === order.businessId);
+            addNotification('order', order.businessId, 'Order ' + newStatus,
+                'Your order ' + (biz ? 'from ' + biz.businessName : '') + ' is now ' + newStatus + '.');
+            renderAll();
+        }
+    }
+
+    // ============================================================
+    //  NOTIFICATIONS
+    // ============================================================
+    function addNotification(type, businessId, title, message) {
+        const notif = {
+            id: generateId(),
+            type: type || 'general',
+            businessId: businessId || null,
+            businessName: null,
+            title: title || 'Update',
+            message: message || '',
+            createdAt: now(),
+            read: false
+        };
+        if (businessId) {
+            const biz = businesses.find(b => b.id === businessId);
+            if (biz) notif.businessName = biz.businessName;
+        }
+        notifications.unshift(notif);
+        DB.set('notifications', notifications);
+        updateBell();
+        renderNotifications();
+    }
+
+    function markAllRead() {
+        notifications.forEach(n => n.read = true);
+        DB.set('notifications', notifications);
+        updateBell();
+        renderNotifications();
+    }
+
+    function updateBell() {
+        const unread = notifications.filter(n => !n.read).length;
+        const badge = document.getElementById('bellBadge');
+        if (unread > 0) {
+            badge.textContent = unread > 9 ? '9+' : unread;
+            badge.classList.remove('hide');
+        } else {
+            badge.classList.add('hide');
+        }
+    }
+
+    // ============================================================
+    //  ANNOUNCEMENTS (2/day per business)
+    // ============================================================
+    function canPostAnnouncement(businessId) {
+        const todayStr = today();
+        const count = announcements.filter(a => a.businessId === businessId && a.date === todayStr).length;
+        return count < 2;
+    }
+
+    function postAnnouncement(businessId, message) {
+        if (!canPostAnnouncement(businessId)) {
+            alert('Daily announcement limit reached. You can publish again tomorrow.');
+            return false;
+        }
+        const biz = businesses.find(b => b.id === businessId);
+        if (!biz) return false;
+        const ann = {
+            id: generateId(),
+            businessId: biz.id,
+            businessName: biz.businessName,
+            message: message,
+            date: today(),
+            createdAt: now()
+        };
+        announcements.push(ann);
+        DB.set('announcements', announcements);
+
+        // Notification for all users
+        addNotification('announcement', biz.id, '📢 ' + biz.businessName,
+            biz.businessName + ' has announced: ' + message);
+
+        // Show popup
+        showAnnouncementPopup(biz.businessName, message, ann.createdAt);
+        renderAll();
+        return true;
+    }
+
+    function showAnnouncementPopup(businessName, message, time) {
+        document.getElementById('modalIcon').textContent = '📢';
+        document.getElementById('modalTitle').textContent = businessName;
+        document.getElementById('modalBody').textContent = message;
+        document.getElementById('modalTime').textContent = formatTime(time);
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('open');
+    }
+
+    // ============================================================
+    //  RENDER: HOME
+    // ============================================================
+    function renderBusinesses(list, containerId) {
+        const container = document.getElementById(containerId);
+        if (!list || list.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <span class="big">🏪</span>
+                    Nothing available nearby yet.<br/>
+                    No registered businesses or services are currently available in your area.
+                </div>
+            `;
+            return;
+        }
+        container.innerHTML = list.map(b => `
+            <div class="biz-card">
+                <h3>${b.businessName}</h3>
+                <span class="cat-tag">${b.genre || 'General'}</span>
+                <div class="desc">${b.description || 'Local business in your area.'}</div>
+                <button class="view-btn" onclick="openBusiness('${b.id}')">View Business</button>
+            </div>
+        `).join('');
+    }
+
+    function renderAll() {
+        const near = getBusinessesNearUser();
+        renderBusinesses(near, 'businessList');
+        renderBusinesses(businesses, 'exploreList');
+        renderOrders();
+        renderProfile();
+        renderNotifications();
+        updateBell();
+        updateGreeting();
+    }
+
+    // ============================================================
+    //  FILTERS
+    // ============================================================
+    let activeCategory = null;
+
+    function filterByCategory(cat) {
+        activeCategory = (activeCategory === cat) ? null : cat;
+        applyFilters();
+    }
+
+    function filterBusinesses() {
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        let list = getBusinessesNearUser();
+
+        if (activeCategory) {
+            list = list.filter(b => b.genre === activeCategory);
+        }
+        if (query) {
+            list = list.filter(b =>
+                b.businessName.toLowerCase().includes(query) ||
+                (b.description && b.description.toLowerCase().includes(query)) ||
+                (b.genre && b.genre.toLowerCase().includes(query)) ||
+                (b.catalogue && b.catalogue.some(c => c.name && c.name.toLowerCase().includes(query)))
+            );
+        }
+        renderBusinesses(list, 'businessList');
+    }
+
+    // ============================================================
+    //  RENDER: ORDERS
+    // ============================================================
+    function renderOrders() {
+        const container = document.getElementById('ordersContainer');
+        const userOrders = orders.filter(o => o.customerId === (user ? user.id : 'guest'));
+        if (userOrders.length === 0) {
+            container.innerHTML = `<div class="empty-state"><span class="big">📭</span>No orders yet</div>`;
+            return;
+        }
+        container.innerHTML = userOrders.map(o => {
+            const biz = businesses.find(b => b.id === o.businessId);
+            return `
+                <div class="order-card">
+                    <div><strong>${biz ? biz.businessName : 'Business'}</strong></div>
+                    <div style="font-size:14px;color:#3a4a5a;">${o.items ? o.items.map(i => i.name).join(', ') : 'Order'}</div>
+                    <div style="font-size:13px;color:#5a6a7a;">${formatTime(o.createdAt)}</div>
+                    <span class="order-status ${o.status.toLowerCase().replace(' ','')}">${o.status}</span>
+                    <div style="margin-top:8px;">
+                        <button onclick="updateOrderStatus('${o.id}','Preparing')" style="font-size:12px;padding:4px 12px;border-radius:30px;border:1px solid #ddd;background:white;cursor:pointer;">Mark Preparing</button>
+                        <button onclick="updateOrderStatus('${o.id}','Ready')" style="font-size:12px;padding:4px 12px;border-radius:30px;border:1px solid #ddd;background:white;cursor:pointer;">Mark Ready</button>
+                        <button onclick="updateOrderStatus('${o.id}','Delivered')" style="font-size:12px;padding:4px 12px;border-radius:30px;border:1px solid #ddd;background:white;cursor:pointer;">Delivered</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ============================================================
+    //  RENDER: PROFILE
+    // ============================================================
+    function renderProfile() {
+        const container = document.getElementById('profileContainer');
+        if (!user) {
+            container.innerHTML = `
+                <div class="profile-form">
+                    <h3 style="margin-bottom:4px;">Create Profile</h3>
+                    <input type="text" id="profName" placeholder="Your name" />
+                    <input type="text" id="profAddress" placeholder="Address" />
+                    <input type="text" id="profArea" placeholder="Area / Society" />
+                    <button class="save-btn" onclick="handleProfileSave()">Save Profile</button>
+                    <hr style="margin:20px 0;border:0;border-top:1px solid #eee;" />
+                    <h4 style="margin-bottom:8px;">Register as Business</h4>
+                    ${businessRegistrationForm()}
+                </div>
+            `;
+            return;
+        }
+        container.innerHTML = `
+            <div class="profile-card">
+                <div class="field"><span class="label">Name</span><span class="value">${user.name || ''}</span></div>
+                <div class="field"><span class="label">Address</span><span class="value">${user.address || ''}</span></div>
+                <div class="field"><span class="label">Area / Society</span><span class="value">${user.area || ''}</span></div>
+                <div class="saved-badge">✓ Profile saved</div>
+                <div class="profile-actions">
+                    <button class="edit-btn" onclick="editProfile()">✏️ Edit Profile</button>
+                    <button class="logout-btn" onclick="logoutUser()">↪ Log Out</button>
+                </div>
+            </div>
+            <hr style="margin:0 20px;border:0;border-top:1px solid #eee;" />
+            <div style="padding:16px 20px;">
+                <h4 style="margin-bottom:8px;">🏪 Register as Business</h4>
+                ${businessRegistrationForm()}
+            </div>
+        `;
+    }
+
+    function businessRegistrationForm() {
+        return `
+            <div class="reg-form" id="bizRegForm">
+                <input type="text" id="bizOwner" placeholder="Owner name" />
+                <input type="text" id="bizName" placeholder="Business name" />
+                <input type="text" id="bizAddress" placeholder="Business address" />
+                <input type="text" id="bizArea" placeholder="Area / Society" />
+                <select id="bizGenre">
+                    <option value="Food">🍱 Food</option>
+                    <option value="Education">📚 Education</option>
+                    <option value="Fashion">👗 Fashion</option>
+                    <option value="Beauty">💇 Beauty</option>
+                    <option value="Crafts">🎨 Crafts</option>
+                    <option value="Services">🧵 Services</option>
+                    <option value="Other">Other</option>
+                </select>
+                <textarea id="bizDesc" placeholder="What do you offer?"></textarea>
+                <button class="reg-btn" onclick="handleBizRegister()">Register Business ✓</button>
+            </div>
+        `;
+    }
+
+    function handleProfileSave() {
+        const name = document.getElementById('profName').value.trim();
+        const address = document.getElementById('profAddress').value.trim();
+        const area = document.getElementById('profArea').value.trim();
+        if (!name || !address || !area) {
+            alert('Please fill all fields.');
+            return;
+        }
+        saveUser({ name, address, area });
+    }
+
+    function editProfile() {
+        if (!user) return;
+        const container = document.getElementById('profileContainer');
+        container.innerHTML = `
+            <div class="profile-form">
+                <h3 style="margin-bottom:4px;">Edit Profile</h3>
+                <input type="text" id="profName" value="${user.name || ''}" />
+                <input type="text" id="profAddress" value="${user.address || ''}" />
+                <input type="text" id="profArea" value="${user.area || ''}" />
+                <button class="save-btn" onclick="handleProfileSave()">Save Changes</button>
+                <button onclick="renderProfile()" style="background:none;border:none;color:#5a6a7a;padding:8px;">Cancel</button>
+            </div>
+        `;
+   }
+
+    function handleBizRegister() {
+        const ownerName = document.getElementById('bizOwner').value.trim();
+        const businessName = document.getElementById('bizName').value.trim();
+        const address = document.getElementById('bizAddress').value.trim();
+        const area = document.getElementById('bizArea').value.trim();
+        const genre = document.getElementById('bizGenre').value;
+        const description = document.getElementById('bizDesc').value.trim();
+        if (!ownerName || !businessName || !address || !area) {
+            alert('Please fill all required fields.');
+            return;
+        }
+        registerBusiness({ ownerName, businessName, address, area, genre, description });
+        // Clear form
+        document.getElementById('bizOwner').value = '';
+        document.getElementById('bizName').value = '';
+        document.getElementById('bizAddress').value = '';
+        document.getElementById('bizArea').value = '';
+        document.getElementById('bizDesc').value = '';
+        renderProfile();
+    }
+
+    // ============================================================
+    //  BUSINESS DETAIL
+    // ============================================================
+    function openBusiness(id) {
+        currentBusinessId = id;
+        const biz = businesses.find(b => b.id === id);
+        if (!biz) return;
+        const container = document.getElementById('businessDetail');
+        const menuHtml = (biz.catalogue && biz.catalogue.length) ?
+            biz.catalogue.map(item => `
+                <div class="menu-item">
+                    <div class="item-name">${item.name || 'Item'}</div>
+                    <div class="item-price">${item.price ? '₹' + item.price : ''}</div>
+                    <div class="item-desc">${item.description || ''}</div>
+                </div>
+            `).join('') : '<p style="color:#8a9aaa;">No menu items yet.</p>';
+
+        container.innerHTML = `
+            <div class="biz-header">
+                <div class="biz-logo">🏪</div>
+                <div>
+                    <div class="biz-name">${biz.businessName}</div>
+                    <span class="biz-category">${biz.genre || 'General'}</span>
+                </div>
+            </div>
+            <div class="biz-desc">${biz.description || 'No description provided.'}</div>
+            <div class="biz-address">📍 ${biz.address || 'Address not set'}</div>
+            <h4 style="margin:12px 0 8px;">📋 Menu / Catalogue</h4>
+            ${menuHtml}
+            <div class="biz-actions">
+                <button class="order-btn" onclick="quickOrder('${biz.id}')">📦 Order / Request</button>
+                <button class="contact-btn" onclick="alert('Contact owner: This will connect via WhatsApp/Chat in future.')">💬 Contact Owner</button>
+            </div>
+            ${user && user.id ? `
+                <div style="margin-top:16px;border-top:1px solid #eee;padding-top:16px;">
+                    <h4 style="margin-bottom:8px;">📢 Announcement</h4>
+                    <textarea id="announceMsg" placeholder="Post an update..." style="width:100%;padding:12px;border-radius:16px;border:1px solid #ddd;font-size:14px;min-height:60px;"></textarea>
+                    <button onclick="handleAnnounce('${biz.id}')" style="margin-top:8px;padding:10px 24px;background:#0a2540;color:white;border:none;border-radius:40px;font-weight:600;cursor:pointer;">Publish Announcement</button>
+                    <div style="font-size:13px;color:#5a6a7a;margin-top:6px;">
+                        ${canPostAnnouncement(biz.id) ? 
+                            '📢 ' + (announcements.filter(a => a.businessId === biz.id && a.date === today()).length) + '/2 available today' :
+                            'Daily announcement limit reached. You can publish again tomorrow.'}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        switchPage('pageBusiness');
+    }
+
+    function closeBusinessDetail() {
+        switchPage('pageHome');
+    }
+
+    function quickOrder(businessId) {
+        const biz = businesses.find(b => b.id === businessId);
+        if (!user) {
+            alert('Please create a profile first.');
+            return;
+        }
+        const itemName = prompt('What would you like to order? (e.g. 2x Paneer Roll)');
+        if (!itemName) return;
+        const order = createOrder(businessId, [{ name: itemName, price: 0 }], {});
+        alert('✅ Order placed! Check your Orders tab.');
+        renderAll();
+    }
+
+    function handleAnnounce(businessId) {
+        const msg = document.getElementById('announceMsg').value.trim();
+        if (!msg) { alert('Please write an announcement.'); return; }
+        if (postAnnouncement(businessId, msg)) {
+            document.getElementById('announceMsg').value = '';
+            openBusiness(businessId); // refresh
+        }
+    }
+
+    // ============================================================
+    //  NOTIFICATIONS PAGE
+    // ============================================================
+    function openNotifications() {
+        switchPage('pageNotifications');
+        renderNotifications();
+    }
+
+    function renderNotifications() {
+        const container = document.getElementById('notifList');
+        if (notifications.length === 0) {
+            container.innerHTML = `<div class="empty-state"><span class="big">🎉</span>You're all caught up 🎉</div>`;
+            return;
+        }
+        container.innerHTML = notifications.map(n => `
+            <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markNotifRead('${n.id}')">
+                <div class="notif-title">${n.title}</div>
+                <div class="notif-body">${n.message}</div>
+                <div class="notif-time">${formatTime(n.createdAt)}</div>
+            </div>
+        `).join('');
+    }
+
+    function markNotifRead(id) {
+        const n = notifications.find(x => x.id === id);
+        if (n) { n.read = true; DB.set('notifications', notifications); updateBell(); renderNotifications(); }
+    }
+
+    // ============================================================
+    //  NAVIGATION
+    // ============================================================
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById(pageId);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const navMatch = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+        if (navMatch) navMatch.classList.add('active');
+
+        // Refresh content on switch
+        if (pageId === 'pageHome') { renderAll(); applyFilters(); }
+        if (pageId === 'pageOrders') renderOrders();
+        if (pageId === 'pageProfile') renderProfile();
+        if (pageId === 'pageNotifications') renderNotifications();
+        if (pageId === 'pageExplore') renderBusinesses(businesses, 'exploreList');
+    }
+
+    // ============================================================
+    //  SEED: zero businesses — start empty
+    // ============================================================
+    // No seed data. Everything starts empty per spec.
+
+    // ============================================================
+    //  INIT
+    // ============================================================
+    function init() {
+        // Ensure no fake businesses
+        if (businesses.length === 0) {
+            DB.set('businesses', []);
+        }
+        renderAll();
+        updateGreeting();
+        updateBell();
+
+        // Show any pending announcement popups (check latest)
+        const latestAnn = announcements.length ? announcements[announcements.length - 1] : null;
+        // Only show if not already shown (we track via a flag in session)
+        if (latestAnn && !sessionStorage.getItem('shownAnn_' + latestAnn.id)) {
+            const biz = businesses.find(b => b.id === latestAnn.businessId);
+            if (biz) {
+                // Show popup
+                showAnnouncementPopup(biz.businessName, latestAnn.message, latestAnn.createdAt);
+                sessionStorage.setItem('shownAnn_' + latestAnn.id, 'true');
+            }
+        }
+    }
+
+    // Override showAnnouncementPopup to track session
+    const origShow = showAnnouncementPopup;
+    showAnnouncementPopup = function(businessName, message, time) {
+        document.getElementById('modalIcon').textContent = '📢';
+        document.getElementById('modalTitle').textContent = businessName;
+        document.getElementById('modalBody').textContent = message;
+        document.getElementById('modalTime').textContent = formatTime(time);
+        document.getElementById('modalOverlay').classList.add('open');
+    };
+
+    // Run
+    init();
+
+    console.log('🏪 NEARBIE loaded — everything local, one place.');
+    console.log('📦 Businesses:', businesses.length);
+    console.log('👤 User:', user);
+</script>
+</body>
+</html>
